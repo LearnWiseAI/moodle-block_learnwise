@@ -26,9 +26,9 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'block_learnwise';
 $plugin->release      = '1.0';
-$plugin->version      = 2026080300;
+$plugin->version      = 2026081900;
 $plugin->requires     = 2020061500;
-$plugin->supported    = [39, 501];
+$plugin->supported    = [34, 502];
 $plugin->maturity     = MATURITY_STABLE;
 $plugin->dependencies = [
     'local_learnwise' => ANY_VERSION,
