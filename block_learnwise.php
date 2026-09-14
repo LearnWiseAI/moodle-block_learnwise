@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-use local_learnwise\util;
+use local_learnwise\hook_callbacks;
 
 /**
  * Block Learnwise
@@ -42,6 +42,12 @@ class block_learnwise extends block_base {
         if ($this->content !== null) {
             return $this->content;
         }
+
+        $html = (string) hook_callbacks::before_standard_top_of_body_html_generation();
+        if (!$decodedsetup = self::extractjsobject($html)) {
+            return $this->content;
+        }
+
         $this->content = (object)[
             'footer' => '',
             'text' => <<<HTML
@@ -55,16 +61,70 @@ class block_learnwise extends block_base {
 HTML
 ,
         ];
-        $settings = get_config('local_learnwise');
         $this->page->requires->js_call_amd('block_learnwise/chat', 'init', [[
             'frameId' => 'learnwise-chat-frame',
-            'injectorHost' => util::get_remotehosturl(),
-            'chatUrl' => util::get_ltitoolurl(),
-            'assistantId' => $settings->assistantid,
-            'region' => $settings->region,
-            'courseId' => $this->page->course->id,
+            'injectorHost' => $decodedsetup['host'],
+            'chatUrl' => $decodedsetup['chatsrc'],
+            'assistantId' => $decodedsetup['assistantid'],
+            'courseId' => $decodedsetup['courseid'],
+            'region' => $decodedsetup['region'],
         ]]);
         return $this->content;
+    }
+
+    /**
+     * Extract js object from string and decodes it.
+     * @param string $html html in which variable defined
+     * @param string $varname variable to extact
+     * @return array|null extracted array<key, value> or empty
+     */
+    public function extractjsobject(string $html, string $varname = 'window.learnWiseSetup'): ?array {
+        // Grab the balanced { ... } after the assignment.
+        $re = '/' . preg_quote($varname, '/') . '\s*=\s*(\{(?:[^{}]|(?1))*\})/s';
+        if (!preg_match($re, $html, $m)) {
+            return null;
+        }
+        $jsonstring = self::jstojson($m[1]);
+        if (!$jsonstring) {
+            return null;
+        }
+        $jsonarray = json_decode($jsonstring, true);
+        $jsonarray = array_change_key_case($jsonarray, CASE_LOWER);
+        return $jsonarray;
+    }
+
+    /**
+     * Convert js object string to json string.
+     * @param string $js js object string
+     * @return string json object string
+     */
+    public function jstojson(string $js): string {
+        $pattern = '~
+            "(?:\\\\.|[^"\\\\])*"                    # double-quoted string
+            | \'(?:\\\\.|[^\'\\\\])*\'                 # single-quoted string
+            | //[^\n]*                                 # line comment
+            | /\*.*?\*/                                # block comment
+            | (?P<key>[A-Za-z_$][A-Za-z0-9_$]*)\s*:    # unquoted key
+            | (?P<trail>,)\s*(?=[}\]])                 # trailing comma
+        ~sx';
+
+        return preg_replace_callback($pattern, function (array $m) {
+            if (isset($m['key']) && $m['key'] !== '') {
+                return '"' . $m['key'] . '":';
+            }
+            if (isset($m['trail']) && $m['trail'] !== '') {
+                return '';
+            }
+            $tok = $m[0];
+            if ($tok[0] === '/') {
+                return ''; // Strip comment.
+            }
+            if ($tok[0] === "'") { // Single → double quoted.
+                $inner = str_replace("\\'", "'", substr($tok, 1, -1));
+                return json_encode($inner, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+            return $tok; // Already valid JSON string.
+        }, $js);
     }
 
     /**

@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'block_learnwise';
-$plugin->release      = '1.0';
-$plugin->version      = 2026081900;
+$plugin->release      = '1.1';
+$plugin->version      = 2026091400;
 $plugin->requires     = 2020061500;
 $plugin->supported    = [34, 502];
 $plugin->maturity     = MATURITY_STABLE;
