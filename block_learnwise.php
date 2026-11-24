@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+use block_learnwise\edit_form;
+use local_learnwise\constants;
 use local_learnwise\hook_callbacks;
+use local_learnwise\util;
 
 /**
  * Block Learnwise
@@ -43,8 +46,7 @@ class block_learnwise extends block_base {
             return $this->content;
         }
 
-        $html = (string) hook_callbacks::before_standard_top_of_body_html_generation();
-        if (!$decodedsetup = self::extractjsobject($html)) {
+        if (!$decodedsetup = $this->get_launch_params()) {
             return $this->content;
         }
 
@@ -63,10 +65,10 @@ HTML
         ];
         $this->page->requires->js_call_amd('block_learnwise/chat', 'init', [[
             'frameId' => 'learnwise-chat-frame',
-            'injectorHost' => $decodedsetup['host'],
-            'chatUrl' => $decodedsetup['chatsrc'],
-            'assistantId' => $decodedsetup['assistantid'],
-            'courseId' => $decodedsetup['courseid'],
+            'host' => $decodedsetup['host'],
+            'chatsrc' => $decodedsetup['chatsrc'],
+            'assistantid' => $decodedsetup['assistantid'],
+            'courseid' => $decodedsetup['courseid'],
             'region' => $decodedsetup['region'],
         ]]);
         return $this->content;
@@ -133,5 +135,58 @@ HTML
      */
     public function applicable_formats() {
         return ['all' => false, 'course' => true];
+    }
+
+    /**
+     * indicates that this block has a global configuration page.
+     * @return bool
+     */
+    public function has_config() {
+        return true;
+    }
+
+    /**
+     * indicates that this block can be configured on a per-instance basis.
+     * @return bool
+     */
+    public function instance_allow_config() {
+        return true;
+    }
+
+    /**
+     * Return the plugin config settings for external functions.
+     *
+     * @return stdClass the configs for both the block instance and plugin
+     * @since Moodle 3.8
+     */
+    public function get_config_for_external() {
+        // Return all settings for all users since it is safe (no private keys, etc..).
+        $configs = !empty($this->config) ? $this->config : new stdClass();
+
+        return (object) [
+            'instance' => $configs,
+            'plugin' => new stdClass(),
+        ];
+    }
+
+    /**
+     * Get launch params from local_learnwise, falling back to legacy HTML parsing
+     * for older local_learnwise versions that lack the helper.
+     *
+     * @return array|null
+     */
+    private function get_launch_params(): ?array {
+        $assistantoptions = edit_form::get_assistant_options();
+        $assistantid = $this->config->assistantid ?? null;
+        if (!isset($assistantid) || !isset($assistantoptions[$assistantid])) {
+            $assistantid = get_config(constants::COMPONENT, 'assistantid');
+        }
+        $courseid = $this->page->course->id;
+        if (is_callable(util::class, 'get_launch_params')) {
+            $params = util::get_launch_params($assistantid, $courseid);
+            return !empty($params) ? $params : null;
+        }
+        $html = hook_callbacks::before_standard_top_of_body_html_generation();
+        return self::extractjsobject($html);
     }
 }

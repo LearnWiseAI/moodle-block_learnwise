@@ -26,22 +26,21 @@
  */
 export const init = (config) => {
     const frame = document.getElementById(config.frameId);
-
     window.learnWiseSetup = {
-        host: config.injectorHost,
-        chatSrc: config.chatUrl,
-        assistantId: config.assistantId,
+        host: config.host,
+        chatSrc: config.chatsrc,
+        assistantId: config.assistantid,
         region: config.region || undefined,
-        courseId: config.courseId ? String(config.courseId) : undefined,
+        courseId: config.courseid ? String(config.courseid) : undefined,
         hideButton: true
     };
 
-    frame.src = config.chatUrl;
+    frame.src = config.chatsrc;
 
     if (!document.getElementById('learnwise-chat-launcher')) {
         const script = document.createElement('script');
         script.id = 'learnwise-chat-launcher';
-        script.src = `${config.injectorHost}/chat_launcher.js`;
+        script.src = `${config.host}/chat_launcher.js?`;
         script.async = true;
         document.head.appendChild(script);
     }

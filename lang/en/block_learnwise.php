@@ -25,6 +25,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['assistant_instances'] = 'Assistant instances';
+$string['assistants'] = 'Assistants';
+$string['assistants_desc'] = 'Each line item is separated by pipe characters. Each line item should be in the format: "Assistant Name|assistantid123".';
+$string['emptynotice'] = 'Please set up assistant in block settings';
+$string['invalidassistants'] = 'Invalid assistants format. Each line should be in the format: "Assistant Name|assistantid". The assistantid should only contain alphanumeric characters and underscore.';
 $string['learnwise:addinstance'] = 'Add a new Learnwise block';
 $string['learnwise:myaddinstance'] = 'Add a new Learnwise block to Dashboard';
 $string['pluginname'] = 'Learnwise';
